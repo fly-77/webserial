@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Arduino Data Visualization</title>
+
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="simple-web-serial.min.js"></script>
+
+
+    <script type="module">
+        import { connectDevice, getCurrentData,getSlopeHistory } from './communicateWithDevice.js';
+        import { initPlot, updatePlot } from './plotData.js';
+        import { initSlopePlot, updateSlopePlot } from './slopePlot.js';
+        import { initThermalPlot, updateThermalPlot } from './thermalPlot.js';
+        
+        // Initialize connection and plots
+        const connection = connectDevice();
+        initPlot("main-plot-container");
+        initSlopePlot("slope-plot-container");
+        initThermalPlot("thermal-plot-container");
+        
+        // Set up periodic updates
+        setInterval(() => {
+            updatePlot();
+            updateSlopePlot();
+            updateThermalPlot();
+            // Debug output
+            //console.log("Current data:", getCurrentData());
+            //console.log("Slope history:", getSlopeHistory());
+        }, 500);
+    </script>
+    <style>
+        .plot-container {
+            margin: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+        #main-plot-container { height: 400px; }
+        #slope-plot-container { height: 250px; }
+        #thermal-plot-container { height: 250px; }
+    </style>
+</head>
+<body>
+    <button id="request-access">Connect to Arduino</button>
+    <div id="main-plot-container" class="plot-container"></div>
+    <div id="slope-plot-container" class="plot-container"></div>
+    <div id="thermal-plot-container" class="plot-container"></div>
+    
+    <!-- Data export button -->
+    <button id="export-data">Export Slope Data</button>
+    
+    <script type="module">
+
+        import {getSlopeHistory } from './communicateWithDevice.js';
+        // Add export functionality
+        document.getElementById("export-data").addEventListener("click", () => {
+            const history = getSlopeHistory();
+            const csvContent = "seconds,slope\n" + 
+            history.map(d => `${d.seconds.toFixed(2)},${d.slope}`).join("\n");
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'slope_history_seconds.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        });
+    </script>
+</body>
+</html>
